@@ -5,4 +5,4 @@ that uses the [deal](https://deal.readthedocs.io/index.html) python library to d
 
 ## Render
 
-![Three balls on a green field](image.ppm)
+![Three balls on a green field](image.png)
