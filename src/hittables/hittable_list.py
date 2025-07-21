@@ -29,4 +29,7 @@ class HittableList(Hittable):
                 closest_so_far = temp_rec.t
                 rec = temp_rec
 
+                if closest_so_far < ray_t.lower:
+                    break
+
         return rec

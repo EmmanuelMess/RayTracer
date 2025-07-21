@@ -75,6 +75,13 @@ def random_on_hemisphere(rng: Generator, normal: Vector3) -> Vector3:
     else:
         return -on_unit_sphere
 
+@post(lambda r: (-0.5 <= r).all() and (r <= 0.5).all())
+def sample_square(rng: Generator) -> Vector3:
+    """
+    Returns the vector to a random point in the [-.5,-.5]-[+.5,+.5] unit square.
+    """
+    return np.array([rng.uniform(-0.5, 0.5), rng.uniform(-0.5, 0.5), 0])
+
 @pre(lambda v, _: is_finite(v))
 @pre(lambda v, _: is_not_zero(v))
 @pre(lambda _, n: is_normalized(n))

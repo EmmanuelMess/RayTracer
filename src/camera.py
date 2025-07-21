@@ -1,5 +1,14 @@
+import multiprocessing
+from concurrent.futures import ThreadPoolExecutor, Future
+from multiprocessing import Pool
+from multiprocessing.pool import AsyncResult
+from threading import Thread
+from typing import List
+
+import joblib
 import numpy as np
 from deal import post, pre, ensure
+from joblib import delayed
 from numpy.random import Generator
 from tqdm import trange
 
@@ -9,7 +18,7 @@ from src.image import write_image
 from src.interval import Interval
 from src.point import color_range, Point3
 from src.ray import Ray
-from src.vector import unit_vector, lerp, Vector3, random_unit_vector, is_not_zero, random_disk_vector
+from src.vector import unit_vector, lerp, Vector3, is_not_zero, random_disk_vector, sample_square
 
 
 class Camera:
@@ -65,17 +74,25 @@ class Camera:
     def render(self, world: Hittable) -> None:
         image = np.empty((np.int64(self.width), np.int64(self.height), 3), dtype=np.float64)
 
-        for j in trange(image.shape[1], desc="Rendering"):
-            for i in range(image.shape[0]):
-                pixel_color = np.array([0, 0, 0], dtype=np.float64)
-                for _ in range(self.samples_per_pixel):
-                    r = self._get_ray(i, j)
-                    color = self._ray_color(r, self.max_depth, world)
-                    pixel_color += color
+        width, height, _ = image.shape
 
-                image[i, j] = np.clip(self.pixel_samples_scale * pixel_color, 0.0, 1.0)
+        num_cores = multiprocessing.cpu_count()
+        results = joblib.Parallel(n_jobs=num_cores)(delayed(self._get_row)(i, j, world) for i in trange(width, desc="Queueing render") for j in range(height))
+
+        for i in trange(width, desc="Render results"):
+            for j in range(height):
+                image[i, j] = results[i * height + j] #self._get_row(i, j, world)
 
         write_image(image)
+
+    def _get_row(self, i: int,  j: int, world: Hittable):
+        pixel_color = np.array([0, 0, 0], dtype=np.float64)
+        for _ in range(self.samples_per_pixel):
+            r = self._get_ray(i, j)
+            color = self._ray_color(r, self.max_depth, world)
+            pixel_color += color
+
+        return np.clip(self.pixel_samples_scale * pixel_color, 0.0, 1.0)
 
     @pre(lambda self, i, _: 0 <= i <= self.width)
     @pre(lambda self, _, j: 0 <= j <= self.height)
@@ -84,7 +101,7 @@ class Camera:
         Construct a camera ray originating from the defocus disk and directed at a randomly
         sampled point around the pixel location i, j.
         """
-        offset = self._sample_square()
+        offset = sample_square(self.rng)
         pixel_sample = (
             self.pixel00_loc + ((i + offset[0]) * self.pixel_delta_u) + ((j + offset[1]) * self.pixel_delta_v)
         )
@@ -93,13 +110,6 @@ class Camera:
         ray_direction = pixel_sample - ray_origin
 
         return Ray(ray_origin, ray_direction)
-
-    @post(lambda r: (-0.5 <= r).all() and (r <= 0.5).all())
-    def _sample_square(self) -> Vector3:
-        """
-        Returns the vector to a random point in the [-.5,-.5]-[+.5,+.5] unit square.
-        """
-        return np.array([self.rng.uniform(-0.5, 0.5), self.rng.uniform(-0.5, 0.5), 0])
 
     # TODO check that output vector is in camera focus plane
     def _defocus_disk_sample(self) -> Vector3:

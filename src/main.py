@@ -99,7 +99,7 @@ def camera1(rng: Generator) -> Camera:
     focus_dist = np.float64(3.4)
     aspect_ratio = np.float64(16.0) / np.float64(9.0)
     height = np.float64(200)
-    samples_per_pixel = np.int64(10)
+    samples_per_pixel = np.int64(100)
     max_depth = np.int64(10)
     camera = Camera(rng, vfov, lookfrom, lookat, up, defocus_angle, focus_dist, aspect_ratio, height, samples_per_pixel, max_depth)
     return camera
@@ -114,7 +114,7 @@ def camera2(rng: Generator) -> Camera:
     focus_dist = np.float64(3.4)
     aspect_ratio = np.float64(16.0) / np.float64(9.0)
     height = np.float64(200)
-    samples_per_pixel = np.int64(10)
+    samples_per_pixel = np.int64(100)
     max_depth = np.int64(10)
     camera = Camera(rng, vfov, lookfrom, lookat, up, defocus_angle, focus_dist, aspect_ratio, height, samples_per_pixel, max_depth)
     return camera
